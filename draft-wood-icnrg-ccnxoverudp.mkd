@@ -31,11 +31,15 @@ normative:
     RFC6347:
     RFC0768:
     LINKLOCAL:
-        target: TODO
+        target: https://github.com/PARC/ccnx-link-local-resources-rfc
         title: CCNx Link Local Resources
         author:
-            name: C. Wood
-            ins: PARC, Inc.
+            - 
+                name: I. Solis
+                ins: PARC, Inc.
+            -
+                name: C. Wood
+                ins: PARC, Inc.
         date: 2015-10-24
 
 --- abstract
@@ -116,7 +120,7 @@ The default UDP port for both the source and destination are 9596.
 ## Options
 
 Running CCNx over UDP with DTLS enabled solves many problems that would have to
-be directly addressed, including MTU size discovery or agreement, and fragmentation.
+be directly addressed, including MTU size discovery or agreement and fragmentation.
 CCNx forwarders rely on DTLS to provide these two features.
 
 Keep-alive messages are only supported in DTLS if the extension in {{RFC6520}} is
@@ -134,8 +138,8 @@ where identifier is a random 32-bit identifier that the *sender* generates and
 associates with the target link. The response to this Interest is a Content
 Object with an empty payload, which serves as an acknowledgement of its receipt.
 
-To avoid conflict, both forwarders must periodically send keep-alive
-messages at the same rate (1 message per second). A peer forwarder will be considered
+To avoid conflict, both forwarders must periodically send keep-alive messages 
+at the same tunable rate (1 message per second). A peer forwarder will be considered
 unavailable if no keep-alive message is sent from the peer in 5 seconds. When a
 peer is determined to be unavailable by a forwarder, the link to said peer will be
 destroyed and its resources will be freed. Moreover, the DTLS session will be
