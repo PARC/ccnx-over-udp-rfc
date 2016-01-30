@@ -1,0 +1,280 @@
+
+
+
+
+ICNRG Working Group                                             I. Solis
+Internet-Draft                                                   C. Wood
+Intended status: Informational                                      PARC
+Expires: April 26, 2016                                 October 24, 2015
+
+
+                             CCNx over UDP
+                      draft-wood-icnrg-ccnxoverudp
+
+Abstract
+
+   This document describes how two nodes can create and run the CCNx
+   protocol over UDP link.  DTLS is required to encrypt all traffic
+   between two nodes.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at http://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on April 26, 2016.
+
+Copyright Notice
+
+   Copyright (c) 2015 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents
+   (http://trustee.ietf.org/license-info) in effect on the date of
+   publication of this document.  Please review these documents
+   carefully, as they describe your rights and restrictions with respect
+   to this document.  Code Components extracted from this document must
+   include Simplified BSD License text as described in Section 4.e of
+   the Trust Legal Provisions and are provided without warranty as
+   described in the Simplified BSD License.
+
+
+
+
+
+Solis & Wood             Expires April 26, 2016                 [Page 1]
+
+Internet-Draft                CCNx-over-UDP                 October 2015
+
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
+     1.1.  Conventions and Terminology . . . . . . . . . . . . . . .   2
+   2.  Transport Assumptions and Requirements  . . . . . . . . . . .   3
+   3.  Specification . . . . . . . . . . . . . . . . . . . . . . . .   3
+     3.1.  Options . . . . . . . . . . . . . . . . . . . . . . . . .   3
+   4.  Security Considerations . . . . . . . . . . . . . . . . . . .   4
+   5.  Normative References  . . . . . . . . . . . . . . . . . . . .   4
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .   5
+
+1.  Introduction
+
+   To enable interoperability between CCNx forwarder implementations
+   over UDP [RFC0768], one can create virtual links between endpoints to
+   exchange CCNx messages (see Figure 1).
+
+   +--+  (Virtual link)   +--+
+   |F1+-------------------+F2|
+   +--+                   +--+
+
+   Figure 1: A virtual link between two CCNx-compliant forwarders F1 and
+                                    F2.
+
+   The goal of this document is to prescribe exactly how to transport
+   CCNx messages between two CCNx-compliant forwarders over UDP
+   [RFC0768] instead of directly over layer-2 Ethernet.  Virtual links
+   created over UDP must be secured by DTLS [RFC6347].  By default, DTLS
+   provides (P)MTU size and fragmentation.  Extensions enable keep-alive
+   messages to be integrated [RFC6520], but this is not a default
+   feature.  Consequently, the solution for running CCNx over UDP (DTLS)
+   is to add keep-alive messages using link local names.
+
+1.1.  Conventions and Terminology
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in RFC
+   2119 [RFC2119].
+
+   The following terms are used in this document.
+
+   Link local name: a name that is used in Interest messages that are
+   only meant to traverse a single hop between two forwarders over a
+   link.
+
+
+
+
+
+
+Solis & Wood             Expires April 26, 2016                 [Page 2]
+
+Internet-Draft                CCNx-over-UDP                 October 2015
+
+
+2.  Transport Assumptions and Requirements
+
+   We make the following assumptions about UDP as transport protocol.
+
+   o  UDP is an unreliable datagram service (i.e., best-effort datagram
+      delivery).
+
+   o  Maximum MTU size of 4KB
+
+   o  UDP (via DTLS) or IP fragmentation subsumes CCNx fragmentation
+      (which would be required for communication over layer-2 services.
+
+   Moreover, running CCNx over UDP between two forwarders requires DTLS
+   to be implemented at both forwarders.  CCNx messages will not
+   traverse unsecured links between nodes.
+
+3.  Specification
+
+   This section outlines the information necessary for an implementation
+   of the CCNx protocol to connect and communicate with a CCNx-compliant
+   forwarder over UDP.  The technique is simple: CCNx messages are
+   encapsulated in the payload of (DTLS-protected) UDP packets, as shown
+   below.
+
+   +----+-----+--------------------------------------+
+   | IP | UDP | DTLS |      CCNx Packet              |
+   +----+--------------------------------------------+
+                     \_____________||________________/
+                                   \/
+                    +---------------------------------+
+                    | Headers |  Message | Validation |
+                    +---------------------------------+
+
+           Figure 2: CCNx message encapsulation in UDP packets.
+
+   Upon successful receipt of a UDP packet from one forwarder to
+   another, a virtual link will have been established.  This link is
+   uniquely defined by the four-element tuple (SrcAddress, DstAddress,
+   SrcPort, DstPort).  Constructing virtual or overlay links that are
+   multiplexed onto a single UDP link is not supported.  The default UDP
+   port for both the source and destination are 9596.
+
+3.1.  Options
+
+   Running CCNx over UDP with DTLS enabled solves many problems that
+   would have to be directly addressed, including MTU size discovery or
+   agreement, and fragmentation.  CCNx forwarders rely on DTLS to
+   provide these two features.
+
+
+
+Solis & Wood             Expires April 26, 2016                 [Page 3]
+
+Internet-Draft                CCNx-over-UDP                 October 2015
+
+
+   Keep-alive messages are only supported in DTLS if the extension in
+   [RFC6520] is implemented.  Since this is not a standard feature of
+   DTLS, CCNx forwarders must use their own keep-alive mechanism.  CCNx
+   forwarders will use the heartbeat resource specified in [LINKLOCAL]
+   to periodically issue keep-alive messages at a rate of 1 message per
+   second.  Such a keep-alive message will be a CCNx Interest with the
+   name
+
+   lci:/link/local/<identifier>/heartbeat/GET
+
+   where identifier is a random 32-bit identifier that the _sender_
+   generates and associates with the target link.  The response to this
+   Interest is a Content Object with an empty payload, which serves as
+   an acknowledgement of its receipt.
+
+   To avoid conflict, both forwarders must periodically send keep-alive
+   messages at the same rate (1 message per second).  A peer forwarder
+   will be considered unavailable if no keep-alive message is sent from
+   the peer in 5 seconds.  When a peer is determined to be unavailable
+   by a forwarder, the link to said peer will be destroyed and its
+   resources will be freed.  Moreover, the DTLS session will be torn
+   down.  Both peers must re-initialize a DTLS session if they are to
+   continue using the link.
+
+4.  Security Considerations
+
+   All UDP links are secured via DTLS.  Issues of peer authentication
+   and trust management in the DTLS protocol are outside the scope of
+   this document.
+
+5.  Normative References
+
+   [LINKLOCAL]
+              PARC, Inc, ., "CCNx Link Local Resources", October 2015,
+              <TODO>.
+
+   [RFC0768]  Postel, J., "User Datagram Protocol", STD 6, RFC 768,
+              DOI 10.17487/RFC0768, August 1980,
+              <http://www.rfc-editor.org/info/rfc768>.
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <http://www.rfc-editor.org/info/rfc2119>.
+
+   [RFC6347]  Rescorla, E. and N. Modadugu, "Datagram Transport Layer
+              Security Version 1.2", RFC 6347, DOI 10.17487/RFC6347,
+              January 2012, <http://www.rfc-editor.org/info/rfc6347>.
+
+
+
+Solis & Wood             Expires April 26, 2016                 [Page 4]
+
+Internet-Draft                CCNx-over-UDP                 October 2015
+
+
+   [RFC6520]  Seggelmann, R., Tuexen, M., and M. Williams, "Transport
+              Layer Security (TLS) and Datagram Transport Layer Security
+              (DTLS) Heartbeat Extension", RFC 6520,
+              DOI 10.17487/RFC6520, February 2012,
+              <http://www.rfc-editor.org/info/rfc6520>.
+
+Authors' Addresses
+
+   Ignacio Solis
+   PARC
+
+   Email: ignacio.solis@parc.com
+
+
+   Christopher A. Wood
+   PARC
+
+   Email: christopher.wood@parc.com
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Solis & Wood             Expires April 26, 2016                 [Page 5]
